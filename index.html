@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>一次函数探究器 | 多参考线对比 (k线蓝色 / b线绿色)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .explorer-container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(2px);
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .graph-panel {
+            flex: 2;
+            min-width: 280px;
+            background: #ffffff;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1.5rem;
+            margin: 1rem 0 1rem 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+
+        .control-panel {
+            flex: 1.2;
+            min-width: 260px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 1.5rem;
+            margin: 1rem;
+            padding: 1.5rem 1.8rem;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        .formula-card {
+            background: #eef2fa;
+            border-radius: 2rem;
+            padding: 0.8rem 1rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.7);
+            margin-bottom: 0.2rem;
+        }
+        .formula-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #5f7f9e;
+            margin-bottom: 6px;
+        }
+        .formula-expression {
+            font-family: 'Courier New', 'Fira Code', 'JetBrains Mono', monospace;
+            font-size: 1.7rem;
+            font-weight: 700;
+            background: #ffffffcc;
+            display: inline-block;
+            padding: 0.3rem 1.2rem;
+            border-radius: 60px;
+            color: #1e4663;
+            letter-spacing: 1px;
+        }
+        .formula-expression span {
+            font-weight: 800;
+        }
+        .k-display-val, .b-display-val {
+            color: #c4452c;
+            font-size: 1.8rem;
+        }
+
+        .canvas-wrapper {
+            background: #fefefe;
+            border-radius: 24px;
+            padding: 8px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            cursor: crosshair;
+        }
+
+        .slider-card {
+            background: #f8fafd;
+            border-radius: 2rem;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.5rem;
+            padding: 0 0.2rem;
+        }
+
+        .param-symbol {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: monospace;
+            background: #dce5f0;
+            width: 48px;
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            color: #1f6392;
+            letter-spacing: 0;
+        }
+        .param-value {
+            font-family: monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: #1e2a3e10;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            color: #1f6392;
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #2c7da0, #61a5c2);
+            border-radius: 10px;
+            outline: none;
+            margin: 0.8rem 0 0.5rem 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            border: 2px solid #0f5b8c;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #eef4ff;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #4a627a;
+            font-weight: 500;
+            padding: 0 0.2rem;
+            margin-top: 4px;
+        }
+
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .preset-btn {
+            background: #eef2fa;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1f4662;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            font-family: monospace;
+            position: relative;
+        }
+
+        .preset-btn:hover {
+            background: #d4e0f0;
+            transform: translateY(-2px);
+        }
+
+        .preset-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 激活的参考线按钮状态 (蓝色/绿色 光晕对应线条颜色) */
+        .preset-btn.active-ref-k {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 0 8px rgba(59,130,246,0.6);
+        }
+        .preset-btn.active-ref-b {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 0 8px rgba(16,185,129,0.6);
+        }
+        .preset-btn.active-ref-k:hover, .preset-btn.active-ref-b:hover {
+            filter: brightness(1.05);
+        }
+
+        .note {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #8aa0bb;
+            margin-top: 0.6rem;
+            border-top: 1px solid #dfe6ef;
+            padding-top: 0.8rem;
+        }
+
+        @media (max-width: 780px) {
+            .graph-panel {
+                margin: 0.8rem;
+            }
+            .control-panel {
+                margin: 0.8rem;
+            }
+            .formula-expression {
+                font-size: 1.2rem;
+            }
+            .k-display-val, .b-display-val {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="explorer-container">
+    <div class="dashboard">
+        <div class="graph-panel">
+            <div class="canvas-wrapper">
+                <canvas id="functionCanvas" width="700" height="500" style="width:100%; height:auto; max-width:700px; aspect-ratio:700/500"></canvas>
+            </div>
+            <div class="note">
+                🟦 蓝色直线：固定 k 值 (b 跟随主函数) &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 绿色直线：固定 b 值 (k 跟随主函数)<br>
+                ✨ 点击参考线按钮会叠加显示，再次点击则移除对应线条
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="formula-card">
+                <div class="formula-label">当前函数解析式</div>
+                <div class="formula-expression">
+                    y = <span id="kDisplayMain" class="k-display-val">1.00</span> · x + <span id="bDisplayMain" class="b-display-val">1.00</span>
+                </div>
+            </div>
+
+            <!-- 参数 k 控制区 (蓝色参考线) -->
+            <div class="slider-card">
+                <div class="param-header">
+                    <span class="param-symbol">k</span>
+                    <span class="param-value" id="kSliderValue">1.00</span>
+                </div>
+                <input type="range" id="kSlider" min="-5" max="5" step="0.05" value="1">
+                <div class="range-labels">
+                    <span>-5</span>
+                    <span>0</span>
+                    <span>5</span>
+                </div>
+                <div class="quick-buttons" id="kButtonGroup">
+                    <button class="preset-btn" data-k="-2">k = -2</button>
+                    <button class="preset-btn" data-k="-0.5">k = -0.5</button>
+                    <button class="preset-btn" data-k="0.5">k = 0.5</button>
+                    <button class="preset-btn" data-k="2">k = 2</button>
+                </div>
+            </div>
+
+            <!-- 参数 b 控制区 (绿色参考线) -->
+            <div class="slider-card">
+                <div class="param-header">
+                    <span class="param-symbol">b</span>
+                    <span class="param-value" id="bSliderValue">1.00</span>
+                </div>
+                <input type="range" id="bSlider" min="-6" max="6" step="0.1" value="1">
+                <div class="range-labels">
+                    <span>-6</span>
+                    <span>0</span>
+                    <span>6</span>
+                </div>
+                <div class="quick-buttons" id="bButtonGroup">
+                    <button class="preset-btn" data-b="-3">b = -3</button>
+                    <button class="preset-btn" data-b="0">b = 0</button>
+                    <button class="preset-btn" data-b="2.5">b = 2.5</button>
+                    <button class="preset-btn" data-b="4">b = 4</button>
+                </div>
+            </div>
+            <div class="note">
+                💡 主函数为红色实线 | 点击任意数值按钮添加对比线，再次点击移除 | 滑块调节主函数时参考线保持固定
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const canvas = document.getElementById('functionCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const kSlider = document.getElementById('kSlider');
+        const bSlider = document.getElementById('bSlider');
+        const kSliderValueSpan = document.getElementById('kSliderValue');
+        const bSliderValueSpan = document.getElementById('bSliderValue');
+        const kDisplayMain = document.getElementById('kDisplayMain');
+        const bDisplayMain = document.getElementById('bDisplayMain');
+        
+        const kButtons = document.querySelectorAll('#kButtonGroup .preset-btn');
+        const bButtons = document.querySelectorAll('#bButtonGroup .preset-btn');
+
+        // 主函数参数
+        let mainK = 1.0;
+        let mainB = 1.0;
+
+        // ---------- 管理多条参考线 ----------
+        // 每条参考线包含: { type, value, kParam, bParam, button }
+        // type: 'k' 表示用户通过点击k按钮生成 (固定k，b随主函数当时值生成)。 
+        //        'b' 表示通过b按钮生成 (固定b，k随主函数当时值生成)
+        // value: 存储按钮对应的参数数值 (k值或b值)
+        // kParam, bParam: 生成该参考线时实际的函数方程参数 (为了在后续主函数变化时静态保留)
+        // button: 对应的按钮DOM元素，用于高亮管理
+        let referenceLines = [];   // 存储参考线对象
+        
+        // 辅助：根据type和value以及当前主函数(mainK, mainB)生成参考线参数
+        function createReferenceParams(type, value, currentMainK, currentMainB) {
+            if (type === 'k') {
+                // 固定斜率 = value，截距使用当前主函数的b
+                return { k: value, b: currentMainB };
+            } else { // type === 'b'
+                // 固定截距 = value，斜率使用当前主函数的k
+                return { k: currentMainK, b: value };
+            }
+        }
+        
+        // 添加新的参考线 (不重复添加相同type+value的组合)
+        function addReferenceLine(type, value, clickedButton) {
+            // 检查是否已存在相同type + value 的参考线 (避免重复添加)
+            const exists = referenceLines.some(line => line.type === type && line.value === value);
+            if (exists) {
+                // 如果已存在，不做任何添加，但可以闪烁提示？为了交互统一，此处直接忽略添加。
+                return false;
+            }
+            // 基于当前主函数创建参考线的参数 (静态保留，不再随主函数改变)
+            const params = createReferenceParams(type, value, mainK, mainB);
+            const newLine = {
+                type: type,
+                value: value,
+                kParam: params.k,
+                bParam: params.b,
+                button: clickedButton
+            };
+            referenceLines.push(newLine);
+            // 更新按钮样式 (根据类型)
+            updateButtonStyle(clickedButton, type, true);
+            return true;
+        }
+        
+        // 移除参考线 (通过type和value)
+        function removeReferenceLine(type, value, button) {
+            const index = referenceLines.findIndex(line => line.type === type && line.value === value);
+            if (index !== -1) {
+                referenceLines.splice(index, 1);
+                updateButtonStyle(button, type, false);
+                return true;
+            }
+            return false;
+        }
+        
+        // 切换参考线: 如果已有则移除，否则添加
+        function toggleReferenceLine(type, value, button) {
+            const exists = referenceLines.some(line => line.type === type && line.value === value);
+            if (exists) {
+                removeReferenceLine(type, value, button);
+            } else {
+                addReferenceLine(type, value, button);
+            }
+            renderCanvas();  // 重新绘制
+        }
+        
+        // 更新单个按钮的高亮样式 (根据当前激活状态)
+        function updateButtonStyle(button, type, isActive) {
+            if (isActive) {
+                if (type === 'k') {
+                    button.classList.add('active-ref-k');
+                    button.classList.remove('active-ref-b');
+                } else {
+                    button.classList.add('active-ref-b');
+                    button.classList.remove('active-ref-k');
+                }
+            } else {
+                button.classList.remove('active-ref-k', 'active-ref-b');
+            }
+        }
+        
+        // 当主函数发生变化时，重建所有参考线的参数 (因为原有参考线基于旧的mainK/mainB生成，为了保持“参考线固定原参数”的语义，不应该改变)
+        // 根据新需求：参考线是静态对比线，主函数变化时参考线保持之前生成时的方程不变，不应随之变动。这样更符合对比探究。
+        // 因此主函数变化时保留原有参考线参数，不做任何更新。只需要重新绘制即可。
+        // 唯一需要更新的是：当主函数变化后，之前通过k按钮生成的参考线仍然显示为原来固定的直线，与现在主函数对比，效果很好。
+        // 所以主函数变化时，不需要重建referenceLines内容。
+        
+        // 绘制所有参考线 (支持蓝色k线 和 绿色b线)
+        function drawAllReferenceLines() {
+            for (let line of referenceLines) {
+                const { type, kParam, bParam } = line;
+                const color = (type === 'k') ? '#3b82f6' : '#10b981';   // k线蓝色，b线绿色
+                // 线宽 2.5，稍微细于主函数，但清晰可见
+                drawLine(kParam, bParam, color, 2.8, false);
+                // 可选添加轻微文字标注，避免拥挤，在画布上方角落显示目前激活参考线数量
+            }
+            // 额外在图例右上角简单显示激活线条数量 (可选提升体验)
+            if (referenceLines.length > 0) {
+                ctx.save();
+                ctx.font = "11px monospace";
+                ctx.fillStyle = "#4b5563";
+                ctx.shadowBlur = 0;
+                let kCount = referenceLines.filter(l => l.type === 'k').length;
+                let bCount = referenceLines.filter(l => l.type === 'b').length;
+                ctx.fillText(`🔵 k参考:${kCount}  🟢 b参考:${bCount}`, canvas.width - 140, 22);
+                ctx.restore();
+            }
+        }
+        
+        // ------------------- 绘制核心函数 (与之前一致) -------------------
+        let canvasWidth = 700;
+        let canvasHeight = 500;
+        const xMin = -7.0, xMax = 7.0;
+        const yMin = -6.0, yMax = 6.0;
+        const padding = { left: 52, right: 32, top: 28, bottom: 42 };
+        
+        function toPixelX(x) {
+            const totalWidth = canvasWidth;
+            const graphWidth = totalWidth - padding.left - padding.right;
+            const t = (x - xMin) / (xMax - xMin);
+            return padding.left + t * graphWidth;
+        }
+        
+        function toPixelY(y) {
+            const totalHeight = canvasHeight;
+            const graphHeight = totalHeight - padding.top - padding.bottom;
+            const t = (y - yMin) / (yMax - yMin);
+            return totalHeight - padding.bottom - t * graphHeight;
+        }
+        
+        function drawGridAndAxes() {
+            if (!ctx) return;
+            ctx.save();
+            ctx.strokeStyle = "#cbd5e1";
+            ctx.lineWidth = 0.8;
+            ctx.fillStyle = "#3b5c7a";
+            ctx.font = "12px 'Segoe UI', 'JetBrains Mono', 'PingFang SC', monospace";
+            ctx.shadowBlur = 0;
+            
+            const xStep = 1.0;
+            let xTick = Math.ceil(xMin / xStep) * xStep;
+            while (xTick <= xMax) {
+                const pixelX = toPixelX(xTick);
+                ctx.beginPath();
+                ctx.moveTo(pixelX, padding.top);
+                ctx.lineTo(pixelX, canvasHeight - padding.bottom);
+                ctx.strokeStyle = "#e9edf4";
+                ctx.stroke();
+                const yAxisZeroPixel = toPixelY(0);
+                if (Math.abs(xTick) > 0.01 || xTick === 0) {
+                    ctx.fillStyle = "#2c5470";
+                    ctx.font = "11px 'Segoe UI', monospace";
+                    ctx.fillText(xTick.toFixed(0), pixelX - 6, yAxisZeroPixel + 15);
+                }
+                xTick += xStep;
+            }
+            
+            const yStep = 1.0;
+            let yTick = Math.ceil(yMin / yStep) * yStep;
+            const xAxisZeroPixel = toPixelX(0);
+            while (yTick <= yMax) {
+                const pixelY = toPixelY(yTick);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, pixelY);
+                ctx.lineTo(canvasWidth - padding.right, pixelY);
+                ctx.strokeStyle = "#e9edf4";
+                ctx.stroke();
+                if (Math.abs(yTick) > 0.01 || yTick === 0) {
+                    ctx.fillStyle = "#2c5470";
+                    ctx.font = "11px 'Segoe UI', monospace";
+                    ctx.fillText(yTick.toFixed(0), xAxisZeroPixel - 26, pixelY + 4);
+                }
+                yTick += yStep;
+            }
+            
+            ctx.beginPath();
+            ctx.lineWidth = 2.2;
+            ctx.strokeStyle = "#2c4c6c";
+            const axisYZero = toPixelY(0);
+            ctx.moveTo(padding.left, axisYZero);
+            ctx.lineTo(canvasWidth - padding.right, axisYZero);
+            ctx.stroke();
+            const axisXZero = toPixelX(0);
+            ctx.moveTo(axisXZero, padding.top);
+            ctx.lineTo(axisXZero, canvasHeight - padding.bottom);
+            ctx.stroke();
+            
+            ctx.fillStyle = "#2c4c6c";
+            const arrowX = toPixelX(xMax);
+            const arrowYZero = toPixelY(0);
+            ctx.beginPath();
+            ctx.moveTo(arrowX - 8, arrowYZero - 3);
+            ctx.lineTo(arrowX, arrowYZero);
+            ctx.lineTo(arrowX - 8, arrowYZero + 3);
+            ctx.fill();
+            const arrowYTop = toPixelY(yMax);
+            const arrowXZero = toPixelX(0);
+            ctx.beginPath();
+            ctx.moveTo(arrowXZero - 3, arrowYTop + 8);
+            ctx.lineTo(arrowXZero, arrowYTop);
+            ctx.lineTo(arrowXZero + 3, arrowYTop + 8);
+            ctx.fill();
+            
+            ctx.font = "bold 13px 'Segoe UI'";
+            ctx.fillStyle = "#1f4d6e";
+            ctx.fillText("x", toPixelX(xMax) - 8, toPixelY(0) - 8);
+            ctx.fillText("y", toPixelX(0) + 8, toPixelY(yMax) - 5);
+            
+            const originX = toPixelX(0);
+            const originY = toPixelY(0);
+            ctx.fillStyle = "#1f4d6e";
+            ctx.font = "italic 13px 'Segoe UI', 'PingFang SC'";
+            ctx.fillText("O", originX + 5, originY - 5);
+            
+            ctx.beginPath();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#8ba0bc";
+            let xMark = Math.ceil(xMin) - 1;
+            while (xMark <= xMax + 1) {
+                const xPos = toPixelX(xMark);
+                const yZero = toPixelY(0);
+                ctx.moveTo(xPos, yZero - 4);
+                ctx.lineTo(xPos, yZero + 4);
+                ctx.stroke();
+                xMark += 1;
+            }
+            let yMark = Math.ceil(yMin) - 1;
+            const xZeroPos = toPixelX(0);
+            while (yMark <= yMax + 1) {
+                const yPos = toPixelY(yMark);
+                ctx.moveTo(xZeroPos - 4, yPos);
+                ctx.lineTo(xZeroPos + 4, yPos);
+                ctx.stroke();
+                yMark += 1;
+            }
+            ctx.restore();
+        }
+        
+        // 通用绘制直线函数
+        function drawLine(kVal, bVal, color, lineWidth = 2.5, isDashed = false) {
+            if (!ctx) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash(isDashed ? [8, 6] : []);
+            let first = true;
+            const step = (xMax - xMin) / 800;
+            for (let x = xMin; x <= xMax + 1e-6; x += step) {
+                let y = kVal * x + bVal;
+                const px = toPixelX(x);
+                const py = toPixelY(y);
+                if (first) {
+                    ctx.moveTo(px, py);
+                    first = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        // 绘制主函数+特殊点
+        function drawMainFunctionWithPoints() {
+            drawLine(mainK, mainB, "#D64531", 3.8, false);
+            ctx.save();
+            const intersectY = mainB;
+            if (intersectY >= yMin - 0.2 && intersectY <= yMax + 0.2) {
+                ctx.beginPath();
+                ctx.fillStyle = "#E35F4A";
+                ctx.arc(toPixelX(0), toPixelY(intersectY), 7, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(toPixelX(0), toPixelY(intersectY), 3.5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = "#b13b2c";
+                ctx.font = "bold 11px monospace";
+                ctx.fillText(`(0,${mainB.toFixed(2)})`, toPixelX(0) + 8, toPixelY(intersectY) - 6);
+            }
+            if (Math.abs(mainK) > 1e-6) {
+                const xIntercept = -mainB / mainK;
+                if (xIntercept >= xMin - 0.2 && xIntercept <= xMax + 0.2) {
+                    ctx.beginPath();
+                    ctx.fillStyle = "#3f8f7c";
+                    ctx.arc(toPixelX(xIntercept), toPixelY(0), 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.fillStyle = "white";
+                    ctx.beginPath();
+                    ctx.arc(toPixelX(xIntercept), toPixelY(0), 3.2, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.fillStyle = "#2f6e5e";
+                    ctx.font = "10px monospace";
+                    ctx.fillText(`(${xIntercept.toFixed(2)},0)`, toPixelX(xIntercept) - 32, toPixelY(0) - 7);
+                }
+            }
+            ctx.restore();
+        }
+        
+        function renderCanvas() {
+            if (!canvas || !ctx) return;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.width = `${canvasWidth}px`;
+            canvas.style.height = `${canvasHeight}px`;
+            
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            drawGridAndAxes();
+            drawAllReferenceLines();     // 绘制所有参考线 (蓝色K线/绿色B线)
+            drawMainFunctionWithPoints(); // 主函数最后绘制使其位于最前（突出）
+        }
+        
+        function updateUI() {
+            kSliderValueSpan.innerText = mainK.toFixed(2);
+            bSliderValueSpan.innerText = mainB.toFixed(2);
+            kDisplayMain.innerText = mainK.toFixed(2);
+            bDisplayMain.innerText = mainB.toFixed(2);
+            kSlider.value = mainK;
+            bSlider.value = mainB;
+        }
+        
+        function setMainParameters(newK, newB) {
+            mainK = newK;
+            mainB = newB;
+            updateUI();
+            renderCanvas();
+        }
+        
+        // 同步所有按钮高亮状态与referenceLines (初始化或外部刷新)
+        function syncButtonsHighlight() {
+            // 重置所有按钮样式
+            kButtons.forEach(btn => btn.classList.remove('active-ref-k', 'active-ref-b'));
+            bButtons.forEach(btn => btn.classList.remove('active-ref-k', 'active-ref-b'));
+            for (let line of referenceLines) {
+                if (line.button) {
+                    updateButtonStyle(line.button, line.type, true);
+                }
+            }
+        }
+        
+        // 事件绑定
+        function bindEvents() {
+            kSlider.addEventListener('input', (e) => {
+                setMainParameters(parseFloat(e.target.value), mainB);
+            });
+            bSlider.addEventListener('input', (e) => {
+                setMainParameters(mainK, parseFloat(e.target.value));
+            });
+            
+            kButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const targetK = parseFloat(btn.getAttribute('data-k'));
+                    if (!isNaN(targetK)) {
+                        toggleReferenceLine('k', targetK, btn);
+                        syncButtonsHighlight(); // 确保样式更新
+                        renderCanvas();
+                    }
+                });
+            });
+            
+            bButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const targetB = parseFloat(btn.getAttribute('data-b'));
+                    if (!isNaN(targetB)) {
+                        toggleReferenceLine('b', targetB, btn);
+                        syncButtonsHighlight();
+                        renderCanvas();
+                    }
+                });
+            });
+        }
+        
+        function init() {
+            canvasWidth = 700;
+            canvasHeight = 500;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            mainK = 1.0;
+            mainB = 1.0;
+            kSlider.value = 1;
+            bSlider.value = 1;
+            bindEvents();
+            updateUI();
+            renderCanvas();
+            window.addEventListener('resize', () => renderCanvas());
+        }
+        
+        init();
+    })();
+</script>
+</body>
+</html>
